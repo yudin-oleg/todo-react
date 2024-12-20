@@ -1,0 +1,16 @@
+/* Начальные стили */
+*,
+*::before,
+*::after {
+	margin: 0;
+	padding: 0;
+	font-style: normal;
+	box-sizing: border-box;
+	border: none;
+}
+#root,
+body,
+html {
+	width: 100vw;
+	height: 100vh;
+}
