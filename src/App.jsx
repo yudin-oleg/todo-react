@@ -1,60 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
+import ToDo from "./toDoClass";
 
 function App() {
 	return (
 		<div className="app">
 			<p className="todos-title">todos</p>
-			<ToDoList />
+			<MainPart />
 		</div>
 	);
 }
 
-function ToDoList() {
-	const [numberOfChecked, setNumberOfChecked] = useState(0);
-	const [toDoItemsArray, setToDoItemsArray] = useState([]);
-	const [neededToShowArray, setNeededToShowArray] = useState([]);
+function MainPart() {
+	const [todos, setTodos] = useState([]);
+	const [showOption, setShowOption] = useState("all");
 
 	return (
 		<div className="main-part">
-			<ToDoInput
-				toDoItemsArray={toDoItemsArray}
-				setToDoItemsArray={setToDoItemsArray}
-			/>
-			<div className="todo-list">
-				{neededToShowArray.map((item) => (
-					<ToDoElement
-						key={item.id} // Use a unique key
-						todo={item.text} // Pass data to the component
-						numberOfChecked={numberOfChecked}
-						setNumberOfChecked={setNumberOfChecked}
-					/>
-				))}
-			</div>
+			<ToDoInput todos={todos} setTodos={setTodos} />
+			<ToDoList todos={todos} setTodos={setTodos} showOption={showOption} />
 			<ManagementButtons
-				toDoItemsArray={toDoItemsArray}
-				setToDoItemsArray={setToDoItemsArray}
-				numberOfChecked={numberOfChecked}
-				neededToShowArray={neededToShowArray}
-				setNeededToShowArray={setNeededToShowArray}
+				todos={todos}
+				setTodos={setTodos}
+				setShowOption={setShowOption}
 			/>
 		</div>
 	);
 }
 
-function ToDoInput({ toDoItemsArray, setToDoItemsArray }) {
+function ToDoInput({ todos, setTodos }) {
 	const [inputValue, setInputValue] = useState("");
 
 	function handleKeyDown(e) {
 		if (e.key === "Enter" && inputValue !== "") {
-			setToDoItemsArray([
-				...toDoItemsArray,
-				{ id: Date.now(), text: inputValue, isChecked: false },
-			]);
-
+			const toDo = new ToDo(inputValue, false);
+			setTodos([...todos, toDo]);
 			setInputValue("");
 		}
 	}
+
+	useEffect(() => {
+		console.log("Updated todos:", todos);
+	}, [todos]);
+
 	return (
 		<div className="todo-input">
 			<input
@@ -68,17 +56,35 @@ function ToDoInput({ toDoItemsArray, setToDoItemsArray }) {
 	);
 }
 
-function ToDoElement({ todo, numberOfChecked, setNumberOfChecked }) {
-	const [isChecked, setIsChecked] = useState(false);
+function ToDoList({ todos, setTodos, showOption }) {
+	let filteredTodos;
+	if (showOption === "all") {
+		filteredTodos = todos;
+	} else if (showOption === "active") {
+		filteredTodos = todos.filter((item) => !item.isChecked);
+	} else if (showOption === "completed") {
+		filteredTodos = todos.filter((item) => item.isChecked);
+	}
+	return (
+		<div className="todo-list">
+			{filteredTodos.map((item, index) => (
+				<ToDoElement
+					key={index} // Use a unique key
+					todo={item} // Pass data to the component
+					todos={todos}
+					setTodos={setTodos}
+				/>
+			))}
+		</div>
+	);
+}
 
-	const handleCheckboxChange = (event) => {
-		setIsChecked(event.target.checked);
-
-		// console.log(event.target.checked);
-		setNumberOfChecked(
-			event.target.checked ? numberOfChecked + 1 : numberOfChecked - 1
+function ToDoElement({ todo, setTodos }) {
+	const handleCheckboxChange = () => {
+		const updatedTodo = { ...todo, isChecked: !todo.isChecked }; // Создаём копию объекта с изменённым состоянием
+		setTodos(
+			(prevTodos) => prevTodos.map((t) => (t === todo ? updatedTodo : t)) // Обновляем массив с новым объектом
 		);
-		console.log("changed");
 	};
 
 	return (
@@ -86,43 +92,43 @@ function ToDoElement({ todo, numberOfChecked, setNumberOfChecked }) {
 			<label>
 				<input
 					type="checkbox"
-					checked={isChecked}
+					checked={todo.isChecked}
 					className="real-checkbox"
 					onChange={handleCheckboxChange}
 				/>
 				<span className="custom-checkbox"></span>
-				<div className="todo-text">{todo}</div>
+				<div className="todo-text">{todo.text}</div>
 			</label>
 		</div>
 	);
 }
 
-function ManagementButtons({
-	toDoItemsArray,
-	setToDoItemsArray,
-	numberOfChecked,
-	neededToShowArray,
-	setNeededToShowArray,
-}) {
+function ManagementButtons({ todos, setTodos, setShowOption }) {
 	const handleShowAll = () => {
-		setNeededToShowArray(toDoItemsArray);
+		setShowOption("all");
 	};
 	const handleShowActive = () => {
-		setNeededToShowArray(
-			[...toDoItemsArray].filter((item) => item.isChecked !== true)
-		);
-		console.log(neededToShowArray);
+		setShowOption("active");
+	};
+	const handleShowCompleted = () => {
+		setShowOption("completed");
+	};
+	const handleClearCompleted = () => {
+		setTodos((prevTodos) => {
+			return prevTodos.filter((item) => item.isChecked === false);
+		});
 	};
 	return (
 		<div className="management-buttons">
 			<div className="left-items">
-				{toDoItemsArray.length - numberOfChecked} items left
+				{todos.filter((item) => item.isChecked === false).length +
+					" items left"}
 			</div>
 			<div className="buttons">
 				<button onClick={() => handleShowAll()}>All</button>
 				<button onClick={() => handleShowActive()}>Active</button>
-				<button>Completed</button>
-				<button>Clear completed</button>
+				<button onClick={() => handleShowCompleted()}>Completed</button>
+				<button onClick={() => handleClearCompleted()}>Clear completed</button>
 			</div>
 		</div>
 	);
